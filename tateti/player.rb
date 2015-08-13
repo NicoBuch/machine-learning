@@ -11,15 +11,26 @@ class Player
     @middle_weight = 1
   end
 
-  def play(tateti)
+  def play(tateti, opponent)
     best_tateti = tateti
-    value = nil
+    value = 0
     tateti.empty_cells.each do |possible_play|
       possible_tateti = Tateti.new(tateti.copy_board)
       possible_tateti.play(possible_play[0], possible_play[1], signature)
+
+      loop do
+        possible_tateti = opponent.play(possible_tateti, self)
+        break if !possible_tateti.winner.nil?
+        break if possible_tateti.tie?
+        possible_tateti = play(possible_tateti, opponent)
+        break if !possible_tateti.winner.nil?
+        break if possible_tateti.tie?
+      end
+
       new_value = game_function(possible_tateti)
-      if value.nil? || new_value > value
-        best_tateti = possible_tateti
+      if value == 0 || new_value > value
+        best_tateti = Tateti.new(tateti.copy_board)
+        best_tateti.play(possible_play[0], possible_play[1], signature)
         value = new_value
       end
     end
@@ -40,7 +51,7 @@ class Player
     return 100 if winner == signature
     return -100 if tateti.inminent_lose?(signature)
     return -10 if tateti.tie?
-    nil
+    0
   end
 
   def update_weights(tateti, difference_values)

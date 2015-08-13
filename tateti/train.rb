@@ -7,12 +7,12 @@ eta = 0.1
 player1 = Player.new(Tateti::CROSS, eta)
 player2 = Player.new(Tateti::CIRCLE, eta)
 
-100.times do
+1.times do
   loop do
-    tateti = player1.play(tateti)
+    tateti = player1.play(tateti, player2)
     break puts 'PLAYER 1 WON' if !tateti.winner.nil?
     break puts 'ITS A TIE' if tateti.tie?
-    tateti = player2.play(tateti)
+    tateti = player2.play(tateti, player1)
     break puts 'PLAYER 2 WON' if !tateti.winner.nil?
     break puts 'ITS A TIE' if tateti.tie?
   end
