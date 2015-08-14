@@ -2,8 +2,8 @@ class Tateti
 
   attr_reader :board
 
-  CROSS = 'x';
-  CIRCLE = 'o';
+  CROSS = 'X';
+  CIRCLE = 'O';
   EMPTY = ' ';
 
   def initialize(new_board = nil)
@@ -96,6 +96,10 @@ class Tateti
     new_board
   end
 
+  def get_board
+    return @board
+  end
+  
   def inminent_lose?(signature)
     3.times do |row|
       return true if inminent_array?(board[row], oponent_signature(signature))
@@ -119,11 +123,18 @@ class Tateti
     return CIRCLE if signature == CROSS
   end
 
-
   def inminent_array?(array, signature)
     array[0] == array[1] && array[0] == signature && array[2] == EMPTY ||
     array[0] == array[2] && array[0] == signature && array[1] == EMPTY ||
     array[2] == array[1] && array[1] == signature && array[0] == EMPTY
   end
-end
 
+  def to_s
+    3.times do |row|
+      3.times do |column|
+        print board[row][column]
+      end
+      puts ' '
+    end
+  end
+end
