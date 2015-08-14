@@ -7,10 +7,10 @@ class Player
     @eta = eta
     @signature = signature
     # These are the Xi, X1 is number of sides, X2 is number of corners and X3 is middle
-    @ponds = [1, 2, 3]
+    @ponds = [1.0, 2.0, 3.0]
     # Aproximations calculated
-    @approximation = [0, 0, 0]
-    @play_matrix = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    @approximation = [0.0, 0.0, 0.0]
+    @play_matrix = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
   end
 
   # Call this method if you want the player to learn
@@ -27,6 +27,7 @@ class Player
       end
     end
     update_weights(best_play, @eta)
+    update_matrix
     tateti.play(best_play[0], best_play[1], signature)
     return tateti
   end
@@ -78,22 +79,68 @@ class Player
   end
 
   def update_weights(play, value)
+    if is_side(play)
+      @approximation[0] += eta * (@approximation[0] - value)
+    end
+    if is_corner(play)
+      @approximation[1] += eta * (@approximation[1] - value)
+    end
+    if is_middle(play)
+      @approximation[2] += eta * (@approximation[2] - value)
+    end
+  end
+
+  def is_side(play)
     row = play[0]
     col = play[1]
-    current = @approximation[row][col]
-    @play_matrix[row][col] = current + eta * value
+    return true if row == 0 and col == 1
+    return true if row == 1 and col == 0
+    return true if row == 1 and col == 2
+    return true if row == 2 and col == 1
+    return false
+  end
+
+  def is_corner(play)
+    row = play[0]
+    col = play[1]
+    return true if row == 0 and col == 0
+    return true if row == 2 and col == 2
+    return true if row == 0 and col == 2
+    return true if row == 2 and col == 0
+    return false
+  end
+
+  def update_matrix
+    @play_matrix[0][0] = @approximation[1]
+    @play_matrix[0][1] = @approximation[0]
+    @play_matrix[0][2] = @approximation[1]
+    @play_matrix[1][0] = @approximation[0]
+    @play_matrix[1][1] = @approximation[2]
+    @play_matrix[1][2] = @approximation[0]
+    @play_matrix[2][0] = @approximation[1]
+    @play_matrix[2][1] = @approximation[0]
+    @play_matrix[2][2] = @approximation[1]
+  end
+
+  def is_middle(play)
+    row = play[0]
+    col = play[1]
+    return true if row == 1 and col == 1
+    return false
   end
 
   def to_s
     puts 'Player of class: ' + self.class.to_s
     puts 'Ponderations considered: '
-    print 'Sides: ' + @ponds[0].to_s + ' Corners: ' + @ponds[1].to_s + ' Middle: ' + @ponds[2].to_s
+    print 'Sides: ' + @ponds[0].round(2).to_s + ' Corners: ' + @ponds[1].round(2).to_s + ' Middle: ' + @ponds[2].round(2).to_s
+    puts ' '
     puts 'Aproximations learned: '
-    print 'Sides: ' + @approximation[0].to_s + ' Corners: ' + @approximation[1].to_s + ' Middle: ' + @approximation[2].to_s
+    print 'Sides: ' + @approximation[0].round(2).to_s + ' Corners: ' + @approximation[1].round(2).to_s + ' Middle: ' + @approximation[2].round(2).to_s
+    puts ' '
     puts 'Moves matrix: '
     3.times do |row|
       3.times do |column|
-        print @ponds[row][column].round(2)
+        print @play_matrix[row][column].round(2)
         print ' | '
       end
       puts ' '

@@ -2,6 +2,7 @@ class Dummy < Player
 
   def play(board)
     possible_plays = board.empty_cells
+    return board if possible_plays[0].nil?
     p = possible_plays[0]
     ans = Tateti.new(board.copy_board)
     ans.play(p[0], p[1], signature)

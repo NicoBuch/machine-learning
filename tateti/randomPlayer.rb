@@ -1,8 +1,9 @@
 class RandomPlayer < Player
+require 'byebug'
 
   def play(board)
     possible_plays = board.empty_cells
-    return board if possible_plays.nil?
+    return board if possible_plays[0].nil?
     r = rand((possible_plays.size) - 1)
     p = possible_plays[r]
     ans = Tateti.new(board.copy_board)
