@@ -17,19 +17,17 @@ class Player
     tateti.empty_cells.each do |possible_play|
       possible_tateti = Tateti.new(tateti.copy_board)
       possible_tateti.play(possible_play[0], possible_play[1], signature)
-      new_value = game_function(possible_tateti)
+      won = check_winner(tateti)
+      won.nil? ? new_value = game_function(possible_tateti) : new_value = won
       if value.nil? || new_value > value
         best_tateti = possible_tateti
         value = new_value
       end
     end
-    update_weights(best_tateti, value - game_function(tateti))
     best_tateti
   end
 
   def game_function(tateti)
-    won = check_winner(tateti)
-    return won unless won.nil?
     side_weight * tateti.sides(signature) +
     corner_weight * tateti.corners(signature) +
     middle_weight * tateti.middle(signature)
@@ -37,9 +35,9 @@ class Player
 
   def check_winner(tateti)
     winner = tateti.winner
-    return 100 if winner == signature
-    return -100 if tateti.inminent_lose?(signature)
-    return -10 if tateti.tie?
+    return 10 if winner == signature
+    return -10 if tateti.inminent_lose?(signature)
+    return 0 if tateti.tie?
     nil
   end
 

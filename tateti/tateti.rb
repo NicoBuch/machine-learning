@@ -125,5 +125,13 @@ class Tateti
     array[0] == array[2] && array[0] == signature && array[1] == EMPTY ||
     array[2] == array[1] && array[1] == signature && array[0] == EMPTY
   end
+
+  def to_s
+    puts "#{board[0][0]} | #{board[0][1]} | #{board[0][2]}"
+    puts "-----"
+    puts "#{board[1][0]} | #{board[1][1]} | #{board[1][2]}"
+    puts "-----"
+    puts "#{board[2][0]} | #{board[2][1]} | #{board[2][2]}"
+  end
 end
 
