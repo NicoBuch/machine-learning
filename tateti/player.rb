@@ -1,31 +1,29 @@
 class Player
   require 'byebug'
 
-  attr_reader :signature, :side_weight, :corner_weight, :middle_weight, :eta
+  attr_reader :signature, :side_weight, :corner_weight, :middle_weight,
+              :eta, :won, :inminent_lose, :two_in_a_row, :opponent_two_in_a_row
 
   def initialize(signature, eta)
     @eta = eta
     @signature = signature
-    @side_weight = 1
-    @corner_weight = 1
-    @middle_weight = 1
+    @side_weight, @corner_weight, @middle_weight = 0, 0, 0
+    @won, @inminent_lose, @two_in_a_row, @opponent_two_in_a_row = 0, 0, 0, 0
   end
 
   def play(tateti)
-    best_tateti = tateti
-    value = nil
+    best_tateti = random_play(Tateti.new(tateti.copy_board))
+    value = game_function(best_tateti)
     tateti.empty_cells.each do |possible_play|
       possible_tateti = Tateti.new(tateti.copy_board)
       possible_tateti.play(possible_play[0], possible_play[1], signature)
-      won = check_winner(possible_tateti)
-      return possible_tateti if won != nil && won > 0
       new_value = game_function(possible_tateti)
-      if value.nil? || new_value > value
+      if new_value > value
         best_tateti = possible_tateti
         value = new_value
       end
       if new_value == value
-        if rand(0..1) == 0
+        if rand < 0.5
           best_tateti = possible_tateti
           value = new_value
         end
@@ -35,16 +33,23 @@ class Player
   end
 
   def game_function(tateti)
-    return -1 if tateti.inminent_lose?(signature)
+    # return -1 if tateti.inminent_lose?(signature)
+    total = 0
+    winner = tateti.winner
+    total = won if winner == signature
+    total += inminent_lose if tateti.inminent_lose?(signature)
+    total +
     side_weight * tateti.sides(signature) +
     corner_weight * tateti.corners(signature) +
-    middle_weight * tateti.middle(signature)
+    middle_weight * tateti.middle(signature) +
+    two_in_a_row * tateti.two_in_a_row(signature) +
+    opponent_two_in_a_row * tateti.two_in_a_row(tateti.oponent_signature(signature))
   end
 
   def check_winner(tateti)
     winner = tateti.winner
-    return 10 if winner == signature
-    return -10 if !winner.nil?
+    return 100 if winner == signature
+    return -100 if !winner.nil?
     return 0 if tateti.tie?
     nil
   end
@@ -53,6 +58,11 @@ class Player
     @side_weight = side_weight + eta * tateti.sides(signature) * difference_values
     @corner_weight = corner_weight + eta * tateti.corners(signature) * difference_values
     @middle_weight = middle_weight + eta * tateti.middle(signature) * difference_values
+    winner = tateti.winner
+    @won = won + eta * difference_values if winner == signature
+    @opponent_two_in_a_row = opponent_two_in_a_row + eta * difference_values * tateti.two_in_a_row(tateti.oponent_signature(signature))
+    @two_in_a_row = two_in_a_row + eta * difference_values * tateti.two_in_a_row(signature)
+    @inminent_lose = inminent_lose + eta * difference_values if tateti.inminent_lose?(signature)
   end
 
 
@@ -67,6 +77,20 @@ class Player
     @side_weight = 2
     @corner_weight = 3
     @middle_weight = 4
+    @won = 100
+    @inminent_lose = -100
+    @two_in_a_row = 10
+    @opponent_two_in_a_row = -10
+  end
+
+  def set_players_weights(player)
+    @side_weight = player.side_weight
+    @corner_weight = player.corner_weight
+    @middle_weight = player.middle_weight
+    @won = player.won
+    @inminent_lose = player.inminent_lose
+    @two_in_a_row = player.two_in_a_row
+    @opponent_two_in_a_row = player.opponent_two_in_a_row
   end
 
 end

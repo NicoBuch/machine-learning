@@ -15,15 +15,16 @@ def train(player1, player2, runs, tateti)
     ties += 1 if game_value == 0
     p2 += 1 if game_value < 0
     tateti.empty_board
-    p -= 1/runs
+    p -= 1/(runs/2)
   end
+  p = 1
   (runs/2).times do |run|
     game_value = training_game_playing_second(player1, player2, tateti, rand < p)
     p1 += 1 if game_value > 0
     ties += 1 if game_value == 0
     p2 += 1 if game_value < 0
     tateti.empty_board
-    p -= 1/runs
+    p -= 1/(runs/2)
   end
 
   print_stats(p1, p2, ties, player1)
@@ -70,10 +71,14 @@ def print_stats(p1, p2, ties, player1)
   puts "PLAYER 1 WON #{p1} games"
   puts "PLAYER 2 WON #{p2} games"
   puts "THERE WERE #{ties} ties"
-  puts "FINAL WEIGHTS:"
-  puts "side_weight:" + player1.side_weight.to_s
-  puts "corner_weight:" + player1.corner_weight.to_s
-  puts "middle_weight:" + player1.middle_weight.to_s
+  puts "FINAL WEIGHTS: "
+  puts "side_weight: " + player1.side_weight.to_s
+  puts "corner_weight: " + player1.corner_weight.to_s
+  puts "middle_weight: " + player1.middle_weight.to_s
+  puts "two_in_a_row: " + player1.two_in_a_row.to_s
+  puts "oponent_two_in_a_row: " + player1.opponent_two_in_a_row.to_s
+  puts "won: " + player1.won.to_s
+  puts "inminent_lose: " + player1.inminent_lose.to_s
 end
 
 
@@ -103,9 +108,11 @@ end
 tateti = Tateti.new
 eta = 0.01
 player1 = Player.new(Tateti::CROSS, eta)
-player2 = Player.new(Tateti::CIRCLE, eta)
-player2.set_trained_weights
+player2 = RandomPlayer.new(Tateti::CIRCLE, eta)
 runs = 10000
+train(player1, player2, runs, tateti)
+player2 = Player.new(Tateti::CIRCLE, eta)
+player2.set_players_weights(player1)
 train(player1, player2, runs, tateti)
 human = HumanPlayer.new(Tateti::CIRCLE, eta)
 play_against_human(player1, human, tateti)

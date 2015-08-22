@@ -126,6 +126,37 @@ class Tateti
     array[2] == array[1] && array[1] == signature && array[0] == EMPTY
   end
 
+  def two_in_a_row(signature)
+    total = 0
+    3.times do |row|
+      counter = 0
+      3.times do |column|
+        counter += 1 if board[row][column] == signature
+      end
+      total += 1 if counter >= 2
+    end
+
+    3.times do |column|
+      counter = 0
+      3.times do |row|
+        counter += 1 if board[column][row] == signature
+      end
+      total += 1 if counter >= 2
+    end
+    counter = 0
+    [[0,0], [1,1], [2,2]].each do |block|
+      counter += 1 if board[block[0]][block[1]] == signature
+    end
+    total += 1 if counter >= 2
+
+    counter = 0
+    [[0,2], [1,1], [2,0]].each do |block|
+      counter += 1 if board[block[0]][block[1]] == signature
+    end
+    total += 1 if counter >= 2
+    return total
+  end
+
   def to_s
     puts ""
     puts ""
