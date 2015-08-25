@@ -33,7 +33,6 @@ class Player
   end
 
   def game_function(tateti)
-    # return -1 if tateti.inminent_lose?(signature)
     total = 0
     winner = tateti.winner
     total = won if winner == signature
@@ -79,8 +78,8 @@ class Player
     @middle_weight = 4
     @won = 100
     @inminent_lose = -100
-    @two_in_a_row = 10
-    @opponent_two_in_a_row = -10
+    @two_in_a_row = 5
+    @opponent_two_in_a_row = -5
   end
 
   def set_players_weights(player)

@@ -4,27 +4,27 @@ require_relative 'tateti'
 require_relative 'random_player'
 require_relative 'human_player'
 
-def train(player1, player2, runs, tateti)
+def train(player1, player2, runs, tateti, play_randomly)
   p1 = 0
   p2 = 0
   ties = 0
-  p = 1
+  play_randomly ? p = 1 : p = 0
   (runs/2).times do |run|
     game_value = training_game_playing_first(player1, player2, tateti, rand < p)
     p1 += 1 if game_value > 0
     ties += 1 if game_value == 0
     p2 += 1 if game_value < 0
     tateti.empty_board
-    p -= 1/(runs/2)
+    p -= 1/(runs/2) if play_randomly
   end
-  p = 1
+  play_randomly ? p = 1 : p = 0
   (runs/2).times do |run|
     game_value = training_game_playing_second(player1, player2, tateti, rand < p)
     p1 += 1 if game_value > 0
     ties += 1 if game_value == 0
     p2 += 1 if game_value < 0
     tateti.empty_board
-    p -= 1/(runs/2)
+    p -= 1/(runs/2) if play_randomly
   end
 
   print_stats(p1, p2, ties, player1)
@@ -37,23 +37,22 @@ def training_game_playing_first(player1, player2, tateti, random)
     player1.update_weights(tateti, game_finished - player1.game_function(tateti))
     return game_finished
   end
-  tateti = player2.play(tateti)
-  game_finished = player1.check_winner(tateti)
+  new_tateti = player2.play(tateti)
+  game_finished = player1.check_winner(new_tateti)
   unless game_finished.nil?
     player1.update_weights(tateti, game_finished - player1.game_function(tateti))
     return game_finished
   end
-  final_game_value = training_game_playing_first(player1, player2, tateti, p)
+  final_game_value = training_game_playing_first(player1, player2, new_tateti, p)
   player1.update_weights(tateti, final_game_value - player1.game_function(tateti))
   return final_game_value
 end
 
 
 def training_game_playing_second(player1, player2, tateti, random)
-  player2.play(tateti)
+  tateti = player2.play(tateti)
   game_finished = player1.check_winner(tateti)
   unless game_finished.nil?
-    player1.update_weights(tateti, game_finished - player1.game_function(tateti))
     return game_finished
   end
   random ? tateti = player1.random_play(tateti) : tateti = player1.play(tateti)
@@ -110,9 +109,10 @@ eta = 0.01
 player1 = Player.new(Tateti::CROSS, eta)
 player2 = RandomPlayer.new(Tateti::CIRCLE, eta)
 runs = 10000
-train(player1, player2, runs, tateti)
-player2 = Player.new(Tateti::CIRCLE, eta)
-player2.set_players_weights(player1)
-train(player1, player2, runs, tateti)
+train(player1, player2, runs, tateti, true)
+player3 = Player.new(Tateti::CIRCLE, eta)
+player3.set_trained_weights
+train(player1, player3, runs, tateti, true)
+train(player1, player3, runs, tateti, false)
 human = HumanPlayer.new(Tateti::CIRCLE, eta)
 play_against_human(player1, human, tateti)

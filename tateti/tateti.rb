@@ -97,6 +97,7 @@ class Tateti
   end
 
   def inminent_lose?(signature)
+    return false if winner == signature
     3.times do |row|
       return true if inminent_array?(board[row], oponent_signature(signature))
     end
