@@ -99,8 +99,9 @@ class Tateti
   def get_board
     return @board
   end
-  
+
   def inminent_lose?(signature)
+    return false if winner == signature
     3.times do |row|
       return true if inminent_array?(board[row], oponent_signature(signature))
     end
@@ -129,12 +130,46 @@ class Tateti
     array[2] == array[1] && array[1] == signature && array[0] == EMPTY
   end
 
-  def to_s
+  def two_in_a_row(signature)
+    total = 0
     3.times do |row|
+      counter = 0
       3.times do |column|
-        print board[row][column]
+        counter += 1 if board[row][column] == signature
       end
-      puts ' '
+      total += 1 if counter >= 2
     end
+
+    3.times do |column|
+      counter = 0
+      3.times do |row|
+        counter += 1 if board[column][row] == signature
+      end
+      total += 1 if counter >= 2
+    end
+    counter = 0
+    [[0,0], [1,1], [2,2]].each do |block|
+      counter += 1 if board[block[0]][block[1]] == signature
+    end
+    total += 1 if counter >= 2
+
+    counter = 0
+    [[0,2], [1,1], [2,0]].each do |block|
+      counter += 1 if board[block[0]][block[1]] == signature
+    end
+    total += 1 if counter >= 2
+    return total
+  end
+
+  def to_s
+    puts ""
+    puts ""
+    puts "#{board[0][0]} | #{board[0][1]} | #{board[0][2]}"
+    puts "----------"
+    puts "#{board[1][0]} | #{board[1][1]} | #{board[1][2]}"
+    puts "----------"
+    puts "#{board[2][0]} | #{board[2][1]} | #{board[2][2]}"
+    puts ""
+    puts ""
   end
 end

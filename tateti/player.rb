@@ -1,132 +1,95 @@
 class Player
   require 'byebug'
 
-  attr_reader :signature, :side_weight, :corner_weight, :middle_weight, :eta
+  attr_reader :signature, :side_weight, :corner_weight, :middle_weight,
+              :eta, :won, :inminent_lose, :two_in_a_row, :opponent_two_in_a_row
 
   def initialize(signature, eta)
     @eta = eta
     @signature = signature
-    # These are the Xi, X1 is number of sides, X2 is number of corners and X3 is middle
-    @ponds = [1.0, 2.0, 3.0]
-    # Aproximations calculated
-    @approximation = [0.0, 0.0, 0.0]
-    @play_matrix = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+    @side_weight, @corner_weight, @middle_weight = 0, 0, 0
+    @won, @inminent_lose, @two_in_a_row, @opponent_two_in_a_row = 0, 0, 0, 0
   end
 
-  # Call this method if you want the player to learn
-  def play_to_learn(tateti, opponent)
-    best_play = nil
-    value = nil
-    tateti.empty_cells.each do |possible_play|
-      current_possible = Tateti.new(tateti.copy_board)
-      current_possible.play(possible_play[0], possible_play[1], signature)
-      current_possible_value = get_leaf_value(current_possible, opponent)
-      if value.nil? || current_possible_value > value
-        best_play = possible_play
-        value = current_possible_value
-      end
-    end
-    update_weights(best_play, @eta)
-    update_matrix
-    tateti.play(best_play[0], best_play[1], signature)
-    return tateti
-  end
-
-  # Method used to calculate one possible final board and its value only letting players use play method
-  def get_leaf_value(tateti, opponent)
-    # Assume its turn of the opponent
-    loop do
-      tateti = opponent.play(tateti)
-      break if !tateti.winner.nil?
-      break if tateti.tie?
-      tateti = play(tateti)
-      break if !tateti.winner.nil?
-      break if tateti.tie?
-    end
-    return game_function(tateti)
-  end
-
-  # Plays according to what the player have learned
   def play(tateti)
-    best_value = nil
-    best_play = nil
+    best_tateti = random_play(Tateti.new(tateti.copy_board))
+    value = game_function(best_tateti)
     tateti.empty_cells.each do |possible_play|
-      row = possible_play[0]
-      col = possible_play[1]
-      current_value = @play_matrix[row][col]
-      if best_value.nil? || current_value > best_value
-        best_value = current_value
-        best_play = possible_play
+      possible_tateti = Tateti.new(tateti.copy_board)
+      possible_tateti.play(possible_play[0], possible_play[1], signature)
+      new_value = game_function(possible_tateti)
+      if new_value > value
+        best_tateti = possible_tateti
+        value = new_value
+      end
+      if new_value == value
+        if rand < 0.5
+          best_tateti = possible_tateti
+          value = new_value
+        end
       end
     end
-    tateti.play(best_play[0], best_play[1], signature)
-    return tateti
+    best_tateti
   end
 
   def game_function(tateti)
-    won = check_winner(tateti)
-    sides = tateti.sides(signature) * @ponds[0] * @approximation[0]
-    corners = tateti.corners(signature) * @ponds[1] * @approximation[1]
-    middle = tateti.middle(signature) * @ponds[2] * @approximation[2]
-    return (won + sides + corners + middle)
+    total = 0
+    winner = tateti.winner
+    total = won if winner == signature
+    total += inminent_lose if tateti.inminent_lose?(signature)
+    total +
+    side_weight * tateti.sides(signature) +
+    corner_weight * tateti.corners(signature) +
+    middle_weight * tateti.middle(signature) +
+    two_in_a_row * tateti.two_in_a_row(signature) +
+    opponent_two_in_a_row * tateti.two_in_a_row(tateti.oponent_signature(signature))
   end
 
   def check_winner(tateti)
     winner = tateti.winner
-    return 0 if winner.nil?
     return 100 if winner == signature
-    return -100
+    return -100 if !winner.nil?
+    return 0 if tateti.tie?
+    nil
   end
 
-  def update_weights(play, value)
-    if is_side(play)
-      @approximation[0] += eta * (@approximation[0] - value)
-    end
-    if is_corner(play)
-      @approximation[1] += eta * (@approximation[1] - value)
-    end
-    if is_middle(play)
-      @approximation[2] += eta * (@approximation[2] - value)
-    end
+  def update_weights(tateti, difference_values)
+    @side_weight = side_weight + eta * tateti.sides(signature) * difference_values
+    @corner_weight = corner_weight + eta * tateti.corners(signature) * difference_values
+    @middle_weight = middle_weight + eta * tateti.middle(signature) * difference_values
+    winner = tateti.winner
+    @won = won + eta * difference_values if winner == signature
+    @opponent_two_in_a_row = opponent_two_in_a_row + eta * difference_values * tateti.two_in_a_row(tateti.oponent_signature(signature))
+    @two_in_a_row = two_in_a_row + eta * difference_values * tateti.two_in_a_row(signature)
+    @inminent_lose = inminent_lose + eta * difference_values if tateti.inminent_lose?(signature)
   end
 
-  def is_side(play)
-    row = play[0]
-    col = play[1]
-    return true if row == 0 and col == 1
-    return true if row == 1 and col == 0
-    return true if row == 1 and col == 2
-    return true if row == 2 and col == 1
-    return false
+
+  def random_play(tateti)
+    possible_plays = tateti.empty_cells
+    cell = possible_plays[rand(0..(possible_plays.size - 1))]
+    tateti.play(cell[0], cell[1], signature)
+    tateti
   end
 
-  def is_corner(play)
-    row = play[0]
-    col = play[1]
-    return true if row == 0 and col == 0
-    return true if row == 2 and col == 2
-    return true if row == 0 and col == 2
-    return true if row == 2 and col == 0
-    return false
+  def set_trained_weights
+    @side_weight = 2
+    @corner_weight = 3
+    @middle_weight = 4
+    @won = 100
+    @inminent_lose = -100
+    @two_in_a_row = 5
+    @opponent_two_in_a_row = -5
   end
 
-  def update_matrix
-    @play_matrix[0][0] = @approximation[1]
-    @play_matrix[0][1] = @approximation[0]
-    @play_matrix[0][2] = @approximation[1]
-    @play_matrix[1][0] = @approximation[0]
-    @play_matrix[1][1] = @approximation[2]
-    @play_matrix[1][2] = @approximation[0]
-    @play_matrix[2][0] = @approximation[1]
-    @play_matrix[2][1] = @approximation[0]
-    @play_matrix[2][2] = @approximation[1]
-  end
-
-  def is_middle(play)
-    row = play[0]
-    col = play[1]
-    return true if row == 1 and col == 1
-    return false
+  def set_players_weights(player)
+    @side_weight = player.side_weight
+    @corner_weight = player.corner_weight
+    @middle_weight = player.middle_weight
+    @won = player.won
+    @inminent_lose = player.inminent_lose
+    @two_in_a_row = player.two_in_a_row
+    @opponent_two_in_a_row = player.opponent_two_in_a_row
   end
 
   def to_s

@@ -1,98 +1,117 @@
 #!/usr/bin/env ruby
 require_relative 'player'
-require_relative 'dummy'
-require_relative 'randomPlayer'
 require_relative 'tateti'
+require_relative 'random_player'
+require_relative 'human_player'
 
-# With this method, player 1 will try to learn
-def train_first(player1, player2, runs)
-  separation
-  tateti = Tateti.new
+def train(player1, player2, runs, tateti, play_randomly)
   p1 = 0
   p2 = 0
   ties = 0
-  runs.times do
-    loop do
-      tateti = player1.play_to_learn(tateti, player2)
-      break p1 += 1 if !tateti.winner.nil?
-      break ties += 1 if tateti.tie?
-      tateti = player2.play(tateti)
-      break p2 += 1 if !tateti.winner.nil?
-      break ties += 1 if tateti.tie?
-    end
+  play_randomly ? p = 1 : p = 0
+  (runs/2).times do |run|
+    game_value = training_game_playing_first(player1, player2, tateti, rand < p)
+    p1 += 1 if game_value > 0
+    ties += 1 if game_value == 0
+    p2 += 1 if game_value < 0
     tateti.empty_board
+    p -= 1/(runs/2) if play_randomly
   end
-  print_stats(player1, player2, runs, p1, p2, ties)
-end
-
-# With this method, player 2 will try to learn
-def train_second(player1, player2, runs)
-  separation
-  tateti = Tateti.new
-  p1 = 0
-  p2 = 0
-  ties = 0
-  runs.times do
-    loop do
-      tateti = player1.play(tateti)
-      break p1 += 1 if !tateti.winner.nil?
-      break ties += 1 if tateti.tie?
-      tateti = player2.play_to_learn(tateti, player1)
-      break p2 += 1 if !tateti.winner.nil?
-      break ties += 1 if tateti.tie?
-    end
+  play_randomly ? p = 1 : p = 0
+  (runs/2).times do |run|
+    game_value = training_game_playing_second(player1, player2, tateti, rand < p)
+    p1 += 1 if game_value > 0
+    ties += 1 if game_value == 0
+    p2 += 1 if game_value < 0
     tateti.empty_board
+    p -= 1/(runs/2) if play_randomly
   end
-  print_stats(player1, player2, runs, p1, p2, ties)
+
+  print_stats(p1, p2, ties, player1)
 end
 
-# Players will play according to what they know
-def simulate(player1, player2, runs)
-  separation
-  tateti = Tateti.new
-  p1 = 0
-  p2 = 0
-  ties = 0
-  runs.times do
+def training_game_playing_first(player1, player2, tateti, random)
+  random ? tateti = player1.random_play(tateti) : tateti = player1.play(tateti)
+  game_finished = player1.check_winner(tateti)
+  unless game_finished.nil?
+    player1.update_weights(tateti, game_finished - player1.game_function(tateti))
+    return game_finished
+  end
+  new_tateti = player2.play(tateti)
+  game_finished = player1.check_winner(new_tateti)
+  unless game_finished.nil?
+    player1.update_weights(tateti, game_finished - player1.game_function(tateti))
+    return game_finished
+  end
+  final_game_value = training_game_playing_first(player1, player2, new_tateti, p)
+  player1.update_weights(tateti, final_game_value - player1.game_function(tateti))
+  return final_game_value
+end
+
+
+def training_game_playing_second(player1, player2, tateti, random)
+  tateti = player2.play(tateti)
+  game_finished = player1.check_winner(tateti)
+  unless game_finished.nil?
+    return game_finished
+  end
+  random ? tateti = player1.random_play(tateti) : tateti = player1.play(tateti)
+  game_finished = player1.check_winner(tateti)
+  unless game_finished.nil?
+    player1.update_weights(tateti, game_finished - player1.game_function(tateti))
+    return game_finished
+  end
+  final_game_value = training_game_playing_second(player1, player2, tateti, p)
+  player1.update_weights(tateti, final_game_value - player1.game_function(tateti))
+  return final_game_value
+end
+
+def print_stats(p1, p2, ties, player1)
+  puts "PLAYER 1 WON #{p1} games"
+  puts "PLAYER 2 WON #{p2} games"
+  puts "THERE WERE #{ties} ties"
+  puts "FINAL WEIGHTS: "
+  puts "side_weight: " + player1.side_weight.to_s
+  puts "corner_weight: " + player1.corner_weight.to_s
+  puts "middle_weight: " + player1.middle_weight.to_s
+  puts "two_in_a_row: " + player1.two_in_a_row.to_s
+  puts "oponent_two_in_a_row: " + player1.opponent_two_in_a_row.to_s
+  puts "won: " + player1.won.to_s
+  puts "inminent_lose: " + player1.inminent_lose.to_s
+end
+
+def play_against_human(player1, player2, tateti)
+  go_first = true
+  loop do
     loop do
-      tateti = player1.play(tateti)
-      break p1 += 1 if !tateti.winner.nil?
-      break ties += 1 if tateti.tie?
-      tateti = player2.play(tateti)
-      break p2 += 1 if !tateti.winner.nil?
-      break ties += 1 if tateti.tie?
+      tateti.to_s
+
+      go_first ? tateti = player1.play(tateti) : tateti = player2.play(tateti)
+      tateti.to_s
+      break puts "#{tateti.winner} WINS!" if !tateti.winner.nil?
+      break puts 'ITS A TIE!' if tateti.tie?
+      go_first ? tateti = player2.play(tateti) : tateti = player1.play(tateti)
+      tateti.to_s
+      break puts "#{tateti.winner} !" if !tateti.winner.nil?
+      break puts 'ITS A TIE!' if tateti.tie?
     end
+    puts 'Do you want to play again? (y/n)'
+    answer = gets
+    break if answer =~ /n/
     tateti.empty_board
+    go_first = !go_first
   end
-  print_stats(player1, player2, runs, p1, p2, ties)
-end
-
-def print_stats(player1, player2, runs, p1won, p2won, ties)
-  puts "Player 1: " + player1.class.to_s
-  puts "Player 2: " + player2.class.to_s
-  puts "Player 1 won: " + p1won.to_s
-  puts "Player 2 won: " + p2won.to_s
-  puts "Ties: " + ties.to_s
-  perf = ((p1won.to_f/runs.to_f)*100).round(2)
-  puts "Player 1 performance: " + '%' + perf.to_s
-  perf = ((p2won.to_f/runs.to_f)*100).round(2)
-  puts "Player 2 performance: " + '%' + perf.to_s
-  player1.to_s
-  separation
-end
-
-def separation
-  puts '--------------------------------------------------------'
 end
 
 tateti = Tateti.new
-eta = 0.001
+eta = 0.01
+player1 = Player.new(Tateti::CROSS, eta)
+player2 = RandomPlayer.new(Tateti::CIRCLE, eta)
 runs = 10000
-learning = Player.new(Tateti::CROSS, eta)
-randy = RandomPlayer.new(Tateti::CIRCLE, eta)
-dumby = Dummy.new(Tateti::CIRCLE, eta)
-
-train_first(learning, randy, runs)
-train_second(randy, learning, runs)
-#simulate(learning, randy, runs)
-simulate(learning, dumby, runs)
+train(player1, player2, runs, tateti, true)
+player3 = Player.new(Tateti::CIRCLE, eta)
+player3.set_trained_weights
+train(player1, player3, runs, tateti, true)
+train(player1, player3, runs, tateti, false)
+human = HumanPlayer.new(Tateti::CIRCLE, eta)
+play_against_human(player1, human, tateti)
